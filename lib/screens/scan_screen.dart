@@ -45,6 +45,7 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mounted) setState(() {});
     } catch (e) {
       if (!mounted) return;
+      // (Tetap) pesan inisialisasi: tidak diwajibkan diubah oleh Soal 2
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menginisialisasi kamera: $e')),
       );
@@ -81,11 +82,16 @@ class _ScanScreenState extends State<ScanScreen> {
         context,
         MaterialPageRoute(builder: (_) => ResultScreen(ocrText: text)),
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error saat foto/OCR: $e')));
+      // === Soal 2: Pesan error statis (tanpa detail exception) ===
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Pemindaian Gagal! Periksa Izin Kamera atau coba lagi.",
+          ),
+        ),
+      );
     }
   }
 
@@ -119,6 +125,26 @@ class _ScanScreenState extends State<ScanScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Error OCR Web: $e')));
     }
+  }
+
+  // === Soal 2: Tampilan loading kamera kustom (mobile) ===
+  Widget _loadingCameraView() {
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(color: Colors.yellow),
+            SizedBox(height: 12),
+            Text(
+              'Memuat Kamera... Harap tunggu.',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -159,8 +185,11 @@ class _ScanScreenState extends State<ScanScreen> {
 
     // === ANDROID/iOS ===
     final controller = _controller;
-    if (controller == null || controller.value.isInitialized == false) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final isReady = controller != null && controller.value.isInitialized;
+
+    if (!isReady) {
+      // === Soal 2: pakai loading view kustom
+      return _loadingCameraView();
     }
 
     return Scaffold(
@@ -169,7 +198,7 @@ class _ScanScreenState extends State<ScanScreen> {
         children: [
           Expanded(
             child: AspectRatio(
-              aspectRatio: controller.value.aspectRatio,
+              aspectRatio: controller!.value.aspectRatio,
               child: CameraPreview(controller),
             ),
           ),
