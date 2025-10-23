@@ -27,6 +27,9 @@ dependencies:
   # === Izin runtime (Android) ===
   permission_handler: ^12.0.1
 
+  # === Text-to-Speech (Soal 3) ===
+  flutter_tts: ^3.8.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
