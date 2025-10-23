@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'scan_screen.dart';
-import '../widgets/buttons.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -8,18 +7,23 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Menu Utama')),
-      body: Center(
-        child: ElevatedButton(
-          style: pillButtonStyle(context),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ScanScreen()),
-            );
-          },
-          child: const Text('Mulai Scan Teks'),
-        ),
+      appBar: AppBar(title: const Text('OCR Sederhana')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt, color: Colors.blue),
+            title: const Text('Mulai Pindai Teks Baru'),
+            subtitle: const Text('Buka kamera untuk memindai teks'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ScanScreen()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
