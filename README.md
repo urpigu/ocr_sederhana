@@ -113,6 +113,10 @@ ocr_sederhana/
 ---
 
 ## 🖼️ Hasil Tampilan
+- **Splash Screen**  
+
+  ![hasil_splash_screen](assets/hasil_splash_screen.png)
+
 - **Menu Utama**  
 
   ![hasil_menu_utama](assets/hasil_menu_utama.png)
@@ -120,12 +124,8 @@ ocr_sederhana/
 - **Scan (Web) – Opsi**  
 
   ![hasil_scan_screen](assets/hasil_scan_screen.png)
-  
+
   ![hasil_scan_screen_1](assets/hasil_scan_screen_1.png)
-
-- **Splash Screen**  
-
-  ![hasil_splash_screen](assets/hasil_splash_screen.png)
 
 - **Hasil OCR**  
 
