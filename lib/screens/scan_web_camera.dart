@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import '../web_ocr.dart' show ocrFromDataUrl;
+import '../widgets/buttons.dart';
 import 'result_screen.dart';
 
 class ScanWebCameraScreen extends StatefulWidget {
@@ -26,39 +27,29 @@ class _ScanWebCameraScreenState extends State<ScanWebCameraScreen> {
     _init();
   }
 
-  String _camLabel(CameraDescription c, int i) {
-    // Gunakan properti name jika ada; fallback label generik
-    final name = c.name?.trim();
-    if (name != null && name.isNotEmpty) return name;
-    return 'Camera ${i + 1} (${c.lensDirection.name})';
-  }
-
   Future<void> _init() async {
     try {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
         setState(
           () => _error =
-              'Tidak ada kamera terdeteksi. Izinkan kamera (ikon gembok → Camera: Allow).',
+              'Tidak ada kamera terdeteksi. Izinkan akses kamera pada situs ini.',
         );
         return;
       }
 
-      // Auto-pilih kamera yang mengandung "nemesis" (eksternal), jika ada
+      // coba kamera belakang; kalau ada nama mengandung "nemesis", pilih itu
       for (int i = 0; i < _cameras.length; i++) {
-        final n = (_cameras[i].name ?? '').toLowerCase();
-        if (n.contains('nemesis')) {
+        final name = (_cameras[i].name ?? '').toLowerCase();
+        if (name.contains('nemesis') ||
+            _cameras[i].lensDirection == CameraLensDirection.back) {
           _camIndex = i;
           break;
         }
       }
-
       await _openCamera(_cameras[_camIndex]);
     } catch (e) {
-      setState(
-        () => _error =
-            'Gagal mengakses kamera. Pastikan browser mengizinkan (ikon gembok → Camera: Allow). Detail: $e',
-      );
+      setState(() => _error = 'Gagal mengakses kamera: $e');
     }
   }
 
@@ -66,8 +57,7 @@ class _ScanWebCameraScreenState extends State<ScanWebCameraScreen> {
     await _controller?.dispose();
     _controller = CameraController(
       cam,
-      // resolusi rendah → lebih stabil di web
-      ResolutionPreset.low,
+      ResolutionPreset.low, // lebih stabil di web
       enableAudio: false,
     );
     _initFuture = _controller!.initialize();
@@ -79,22 +69,11 @@ class _ScanWebCameraScreenState extends State<ScanWebCameraScreen> {
     await _openCamera(_cameras[_camIndex]);
   }
 
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
   Future<void> _captureAndOcr() async {
     final c = _controller;
     if (c == null) return;
     try {
       await _initFuture;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Mengambil foto…')));
-
       final xfile = await c.takePicture();
       final bytes = await xfile.readAsBytes();
       final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
@@ -109,34 +88,16 @@ class _ScanWebCameraScreenState extends State<ScanWebCameraScreen> {
         context,
         MaterialPageRoute(builder: (_) => ResultScreen(ocrText: text)),
       );
-    } on CameraException catch (e) {
-      // Fallback jika takePicture error (cameraNotReadable)
-      debugPrint('CameraException: ${e.code} – ${e.description}');
-      await _fallbackPickFromCamera();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gagal mengambil foto/OCR: $e')));
-    }
-  }
-
-  Future<void> _fallbackPickFromCamera() async {
-    try {
+    } on CameraException catch (_) {
+      // fallback ke picker kamera sistem bila takePicture bermasalah
       final x = await _picker.pickImage(
         source: ImageSource.camera,
         maxWidth: 1600,
       );
-      if (x == null) return;
-      final bytes = await x.readAsBytes();
-      final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Memproses OCR (Fallback)…')),
-      );
-
+      if (x == null || !mounted) return;
+      final dataUrl =
+          'data:image/jpeg;base64,${base64Encode(await x.readAsBytes())}';
       final text = await ocrFromDataUrl(dataUrl, lang: 'eng');
-      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => ResultScreen(ocrText: text)),
@@ -145,15 +106,21 @@ class _ScanWebCameraScreenState extends State<ScanWebCameraScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Fallback gagal: $e')));
+      ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
     }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Kamera (Web)')),
+        appBar: AppBar(title: const Text('Kamera')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -170,26 +137,23 @@ class _ScanWebCameraScreenState extends State<ScanWebCameraScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kamera (Web)'),
+        title: const Text('Kamera'),
         actions: [
           if (_cameras.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: DropdownButton<int>(
-                value: _camIndex,
-                underline: const SizedBox(),
-                onChanged: (v) => v == null ? null : _switchTo(v),
-                items: [
-                  for (int i = 0; i < _cameras.length; i++)
-                    DropdownMenuItem(
-                      value: i,
-                      child: Text(
-                        _camLabel(_cameras[i], i),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+            DropdownButton<int>(
+              value: _camIndex,
+              underline: const SizedBox(),
+              onChanged: (v) => v == null ? null : _switchTo(v),
+              items: [
+                for (int i = 0; i < _cameras.length; i++)
+                  DropdownMenuItem(
+                    value: i,
+                    child: Text(
+                      (_cameras[i].name ?? 'Camera ${i + 1}'),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
         ],
       ),
@@ -198,8 +162,8 @@ class _ScanWebCameraScreenState extends State<ScanWebCameraScreen> {
           Expanded(
             child: FutureBuilder(
               future: _initFuture,
-              builder: (_, snap) {
-                if (snap.connectionState != ConnectionState.done) {
+              builder: (_, s) {
+                if (s.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 return AspectRatio(
@@ -211,21 +175,11 @@ class _ScanWebCameraScreenState extends State<ScanWebCameraScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _captureAndOcr,
-                  icon: const Icon(Icons.camera),
-                  label: const Text('Ambil Foto & OCR'),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  onPressed: _fallbackPickFromCamera,
-                  icon: const Icon(Icons.photo_camera_back),
-                  label: const Text('Fallback (Picker)'),
-                ),
-              ],
+            child: ElevatedButton.icon(
+              style: pillButtonStyle(context),
+              onPressed: _captureAndOcr,
+              icon: const Icon(Icons.camera),
+              label: const Text('Ambil Foto & OCR'),
             ),
           ),
         ],

@@ -6,6 +6,7 @@ import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../web_ocr.dart' show ocrFromDataUrl;
+import '../widgets/buttons.dart';
 import 'result_screen.dart';
 import 'scan_web_camera.dart'; // layar kamera live (web)
 
@@ -17,7 +18,7 @@ class ScanScreen extends StatefulWidget {
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  // === Mobile (Android/iOS)
+  // === Mobile (Android/iOS) ===
   CameraController? _controller;
   Future<void>? _initializeControllerFuture;
 
@@ -88,13 +89,13 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  // === Web (Tesseract.js) — pakai picker kamera (tanpa galeri)
+  // === Web (Tesseract.js) — kamera live & galeri ===
   final _picker = ImagePicker();
 
-  Future<void> _pickAndOcrWeb() async {
+  Future<void> _pickFromGalleryWeb() async {
     try {
       final xfile = await _picker.pickImage(
-        source: ImageSource.camera,
+        source: ImageSource.gallery,
         maxWidth: 1600,
       );
       if (xfile == null) return;
@@ -122,18 +123,18 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // WEB: hanya 2 opsi → Kamera langsung (preview) & Ambil Foto (picker kamera)
+    // === WEB ===
     if (kIsWeb) {
       return Scaffold(
-        appBar: AppBar(title: const Text('OCR (Web)')),
+        appBar: AppBar(title: const Text('OCR')), // tanpa "(Web)"
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Opsi 1: Kamera langsung (preview webcam)
               ElevatedButton.icon(
-                icon: const Icon(Icons.videocam),
-                label: const Text('Kamera langsung (Web)'),
+                style: pillButtonStyle(context), // << sama seperti menu utama
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Pilih menggunakan Kamera'),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -144,20 +145,11 @@ class _ScanScreenState extends State<ScanScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              // Opsi 2: Picker (memotret via UI kamera browser/OS)
               ElevatedButton.icon(
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Ambil Foto (Picker)'),
-                onPressed: _pickAndOcrWeb,
-              ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.0),
-                child: Text(
-                  'Jika kamera eksternal tidak terdeteksi, pilih "Kamera langsung (Web)" '
-                  'dan pastikan perangkat kamera yang benar dipilih di dropdown.',
-                  textAlign: TextAlign.center,
-                ),
+                style: pillButtonStyle(context), // << sama persis
+                icon: const Icon(Icons.photo_library),
+                label: const Text('Pilih dari Folder / Galeri Foto'),
+                onPressed: _pickFromGalleryWeb,
               ),
             ],
           ),
@@ -165,7 +157,7 @@ class _ScanScreenState extends State<ScanScreen> {
       );
     }
 
-    // MOBILE (Android/iOS)
+    // === ANDROID/iOS ===
     final controller = _controller;
     if (controller == null || controller.value.isInitialized == false) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -184,6 +176,7 @@ class _ScanScreenState extends State<ScanScreen> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton.icon(
+              style: pillButtonStyle(context),
               onPressed: _takePictureMobile,
               icon: const Icon(Icons.camera_alt),
               label: const Text('Ambil Foto & Scan'),

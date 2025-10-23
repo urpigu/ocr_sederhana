@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'scan_screen.dart';
+import '../widgets/buttons.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -10,6 +11,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Menu Utama')),
       body: Center(
         child: ElevatedButton(
+          style: pillButtonStyle(context),
           onPressed: () {
             Navigator.push(
               context,
