@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base href="/" />
+  <meta charset="UTF-8" />
+  <meta name="description" content="OCR Sederhana" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Tesseract.js via CDN untuk OCR di browser -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <script>
+    // Fungsi global yang akan dipanggil dari Flutter (JS interop)
+    window.tesseractOcr = async function (dataUrl, lang) {
+      try {
+        const worker = await Tesseract.createWorker({ logger: m => console.log(m) });
+        const language = lang || 'eng'; // 'eng' / 'ind'
+        // Model bahasa diambil dari server tessdata (bisa diganti ke hosting sendiri)
+        await worker.loadLanguage(language);
+        await worker.initialize(language);
+        const { data: { text } } = await worker.recognize(dataUrl);
+        await worker.terminate();
+        return text;
+      } catch (e) {
+        console.error('Tesseract OCR error:', e);
+        throw e;
+      }
+    };
+  </script>
+
+  <title>OCR Sederhana</title>
+  <link rel="manifest" href="manifest.json" />
+</head>
+
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+
+</html>
